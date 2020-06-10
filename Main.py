@@ -5,7 +5,7 @@ import Logic
 ############### start to set env ################
 WORK_DIR = "D:/000_WORK/YuGooSang_KimHuiKwon/20200609/WORK_DIR/"
 
-SOURCE_DIR = "first_excel_output/*.txt"
+SOURCE_DIR = "crawler_output/*.txt"
 ############### end setting env ################
 
 def main():
