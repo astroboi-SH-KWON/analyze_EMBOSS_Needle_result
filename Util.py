@@ -9,6 +9,8 @@ import Bio as bio
 from Bio import SeqIO
 import glob
 
+import Logic
+
 class Utils:
     def __init__(self):
         self.ext_txt = ".txt"
@@ -88,6 +90,8 @@ class Utils:
                     }
     """
     def make_excel(self, path, result_dict):
+        logic = Logic.Logics()
+
         for fn_key, val_list in result_dict.items():
             workbook = openpyxl.Workbook()
             sheet = workbook.active
@@ -101,30 +105,45 @@ class Utils:
             sheet.cell(row=row, column=6, value='Sequence')
 
             for val_arr in val_list:
-                final_index = val_arr[0]
+                final_index = val_arr[0].replace('"', '')
                 sub_dict = val_arr[1]
                 ins_dict = val_arr[2]
                 del_dict = val_arr[3]
                 last_idx = val_arr[4]
-
+                end_idx = 0
                 for i in range(last_idx):
-                    if i in sub_dict:
-                        pass
-                    elif i in ins_dict:
-                        pass
-                    elif i in del_dict:
-                        row += 1
-                        sheet.cell(row=row, column=1, value=str(row - 1))
-                        sheet.cell(row=row, column=2, value=final_index)
-                        sheet.cell(row=row, column=3, value='Del')
-                        sheet.cell(row=row, column=4, value=str(i))
-                        if i == last_idx:
-                            sheet.cell(row=row, column=5, value=str(i))
-                        else:
-                            sheet.cell(row=row, column=5, value=str(i + 1))
-                        sheet.cell(row=row, column=6, value=del_dict[i])
+                    if i > end_idx:
+                        if i in sub_dict:
+                            row += 1
+                            sheet.cell(row=row, column=1, value=str(row - 1))
+                            sheet.cell(row=row, column=2, value=final_index)
+                            sheet.cell(row=row, column=3, value='Sub')
+                            sheet.cell(row=row, column=4, value=str(i))
+                            end_idx, sub_seq_from, sub_seq_to = logic.get_sub_idx_seq(i + 1, sub_dict, sub_dict[i].split("->"))
+                            sheet.cell(row=row, column=5, value=str(end_idx))
+                            sheet.cell(row=row, column=6, value=sub_seq_from + "->" + sub_seq_to)
 
+                        elif i in del_dict:
+                            row += 1
+                            sheet.cell(row=row, column=1, value=str(row - 1))
+                            sheet.cell(row=row, column=2, value=final_index)
+                            sheet.cell(row=row, column=3, value='Del')
+                            sheet.cell(row=row, column=4, value=str(i))
+                            end_idx, del_seq = logic.get_del_idx_seq(i + 1, del_dict, del_dict[i])
+                            sheet.cell(row=row, column=5, value=str(end_idx))
+                            sheet.cell(row=row, column=6, value=del_seq)
 
+                        elif i in ins_dict:
+                            row += 1
+                            sheet.cell(row=row, column=1, value=str(row - 1))
+                            sheet.cell(row=row, column=2, value=final_index)
+                            sheet.cell(row=row, column=3, value='Ins')
+                            sheet.cell(row=row, column=4, value=str(i))
+                            if i == last_idx:
+                                sheet.cell(row=row, column=5, value=str(i))
+                            else:
+                                sheet.cell(row=row, column=5, value=str(i + 1))
+                            sheet.cell(row=row, column=6, value=ins_dict[i])
 
             workbook.save(
                 filename=path + fn_key[fn_key.index("result_") + len("result_"):].replace(".txt", "") + self.ext_xlsx)
