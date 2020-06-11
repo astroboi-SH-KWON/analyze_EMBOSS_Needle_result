@@ -1,6 +1,9 @@
+from Bio import pairwise2
+from Bio import SeqIO
+from Bio.SubsMat.MatrixInfo import blosum62
+
 import pandas as pd
 import Bio as bio
-from Bio import SeqIO
 from time import clock
 import glob
 import multiprocessing as mp
@@ -15,6 +18,7 @@ import Valid
 WORK_DIR = "D:/000_WORK/YuGooSang_KimHuiKwon/20200609/WORK_DIR/"
 
 SOURCE_DIR = "crawler_output/*test.txt"
+INPUT_DIR = "input/*test.txt"
 ############### end setting env ################
 
 def main():
@@ -29,61 +33,55 @@ def main():
 
     util.make_excel(WORK_DIR + "excel_output/result_", result_dict)
 
-def test():
+def pairwise2_main():
     util = Util.Utils()
+    logic = Logic.Logics()
 
-    needle_dict = {'D:/000_WORK/YuGooSang_KimHuiKwon/20200609/WORK_DIR/first_excel_output\\result_gDNA_0609.txt':
-        [['1', 'Group1,2_RT/20-PBS/7-#Target723'
-        , 'AATATATCTTGTGGAAAGGACGAAACACCG--CATACTCGGGCGC-------CGGGGTGTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGACCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGCACATGCCAGGTGGACGAGTTTTCTTGCTTTTTTTGATACTCTGTCTGTACTACAACGCCCATTTCCGCAAGAAAACTGGTCTACCTGGCATGTTCAGCTTGGCGTACCGCGATCTCTACTCTACCACTTGTACTTCAGCGGTCAGCTTACTCGACTTAA'
-        , '.|||||||||||||||||||||||||||||  ||| .||   |||       |     ||||||||||||||||||||||||||||||||||||||.||||||||||||||||||||||||||||||||||||||||||||||||.|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||'
-        , 'TATATATCTTGTGGAAAGGACGAAACACCGCCCAT-TTC---CGCAAGAAAAC-----GTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGCACATGCCAGGTAGACgAGTTTTCTTGCTTTTTTTGATACTCTGTCTGTACTACAACGCCCATTTCCGCAAGAAAACTGGTCTACCTGGCATGTTCAGCTTGGCGTAcCgcGATCTCTACTCTACCACTTGTACTTCAGCGGTCAGCTTACTCGACTTAA', '293', '293', '293', 'O']
-        , ['2', 'Group1,2_RT/12-PBS/11-#Target1948'
-        , 'TATATATCTTGTGGAAAGGACGAAACACCGAAGTCCGTCAGATTCTATCGTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGCATACCACGAGATAGAATCTGACGTTTTTTTCGTACTCATATATACATATCTCTAAGTCCGTCAGATTCTATCTGGTGGTATCTCCAGGTGAAGCTTGGCGTACCGCGATCTCTACTCTACCACTTGTACTTCAGCGGTCAGCTTACTCGACTTAA'
-        , '||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||'
-        , 'TATATATCTTGTGGAAAGGACGAAACACCGAAGTCCGTCAGATTCTATCGTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGCATACCACgAGATAGAATCTGACGTTTTTTTCGTACTCATATATACATATCTCTAAGTCCGTCAGATTCTATCTGGTGGTATCTCCAGGTGAAGCTTGGCGTAcCgcGATCTCTACTCTACCACTTGTACTTCAGCGGTCAGCTTACTCGACTTAA',  '280', '280', '280', 'O']
-        , ['3', 'Group1,2_RT/20-PBS/17-#Target833'
-        , '-----------------------------------------------------------------------------------------CG-------CTTGAAAAAGTGGCACCGAGTCGGTGCTTACCTCTTTGGATCGTGATCACAATCCTCCAGATGCTTTTTTTCAGATAGCATACTGTATACTGGGCATCTGGAGGATTGTGATCAGGATCCAAAGAGGTAATGAGCTTGGCGTACCGCGATCTCTACTCTACCACTTGTACTTCAGCGGTCAGCTTACTCGACTTAACGTGCACGTGACACGTTCCAGACCGTACATGCTTACATGGGATGAAGCTTGGCGTAACTAGATCTTGAGACAAATGGCAGTATT'
-        , '                                                                                         ||       ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||                                                                                    '
-        , 'TATATATCTTGTGGAAAGGACGAAACACCGCATCTGGAGGATTGTGATCGTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGCTTACCTCTTTGGATCgTGATCACAATCCTCCAGATGCTTTTTTTCAGATAGCATACTGTATACTGGGCATCTGGAGGATTGTGATCAGGATCCAAAGAGGTAATGAGCTTGGCGTAcCgcGATCTCTACTCTACCACTTGTACTTCAGCGGTCAGCTTACTCGACTTAA------------------------------------------------------------------------------------', '378', '378', '378', 'O']
-        , ['4', 'Group1,2_RT/12-PBS/9-#Target489'
-        , 'TATATATCTTGTGGAAAGGACGAAACACCGGCGCGGAACAGGTCG--ATC-TGTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGCAAGTACCGTTTGATGCCGCTGTTTTTTTCATACACGACACACATCTGAGGTCGTTCACCAGCGGCATCAAAGGGTACTTCATGGCGCATAGCTTGGTGTACCGCGATCTCTACTCTACCACTTGTACTTCAGCGGTCAGCTTACTCGACTTAA'
-        , '||||||||||||||||||||||||||||| |||...|.|||  ||  ||| .||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||.||||||||||||||||||||||||||||||||||||||||||||||||||||||||'
-        , 'TATATATCTTGTGGAAAGGACGAAACACC-GCGTTCACCAG--CGGCATCAAGTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGCAAGTACCgTTTGATGCCGCTGTTTTTTTCATACACGACACACATCTGAGGTCGTTCACCAGCGGCATCAAAGGGTACTTCATGGCGCATAGCTTGGCGTAcCgcGATCTCTACTCTACCACTTGTACTTCAGCGGTCAGCTTACTCGACTTAA', '281', '281', '281', 'O']
-        ]}
+    sources = util.get_files_from_dir(WORK_DIR + INPUT_DIR)
 
-    result_dict = {}
-    for fnm_key, val_list in needle_dict.items():
-        result_dict.update({fnm_key: []})
-        for val_arr in val_list:
-            final_index = val_arr[1]
-            ngs_read = val_arr[2].upper()
-            ref_seq = val_arr[4].upper()
-            re_idx = 0
-            sub_dict = {}
-            ins_dict = {}
-            del_dict = {}
-            for i in range(len(ngs_read)):
-                if ngs_read[i] != ref_seq[i]:
-                    if ngs_read[i] == "-":
-                        re_idx += 1
-                        del_dict.update({re_idx: ref_seq[i]})
-                    elif ref_seq[i] == "-":
-                        if re_idx in ins_dict:
-                            ins_dict[re_idx] += ngs_read[i]
-                        else:
-                            ins_dict.update({re_idx: ngs_read[i]})
-                    else:
-                        re_idx += 1
-                        sub_dict.update({re_idx: ref_seq[i] + "->" + ngs_read[i]})
-                else:
-                    re_idx += 1
-            result_dict[fnm_key].append([final_index, sub_dict, ins_dict, del_dict, re_idx])
+    needle_dict = logic.get_pairwise2_needle_dict(sources)
 
-    util.make_excel(WORK_DIR + "excel_output/result_", result_dict)
+    result_dict = logic.get_sub_ins_del_list_dict_by_fnm(needle_dict)
+
+    util.make_excel(WORK_DIR + "excel_output/pairwise2_result_", result_dict)
+
+def pairwise2_test():
+    asequence = "TATATATCTTGTGGAAAGGACGAAACACCGGAAGCTGTACTTCAAAAAAGTTAGTACATTTTTTTCATATCTGCACTCACTCTCTGCTGAAGCTGTACTTCAAAAAATGGATGACATGAAGAAGATAGCTTGGCGTACCGCGATCTCTACTCTACCCACTTGTACTTCAGCGGTCAGCTTACTCGACTTAA"
+    bsequence = "TATATATCTTGTGGAAAGGACGAAACACCGGAAGCTGTACTTCAAAAAAGTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGCTGTCATCgATTTTTTGAAGTACATTTTTTTCATATCTGCACTCACTCTCTGCTGAAGCTGTACTTCAAAAAATGGATGACATGAAGAAGATAGCTTGGCGTAcCgcGATCTCTACTCTACCACTTGTACTTCAGCGGTCAGCTTACTCGACTTAA"
+    alignments = pairwise2.align.globalxx(asequence, bsequence)
+    # print(alignments[0][0])
+    # print(alignments[0][1])
+    # print("")
+
+    for tmp_tup in alignments:
+        # print(tmp_tup[0])
+        print(tmp_tup[1])
+        # print("")
+
+def pairwise2_w_opt_test():
+    asequence = "TATATATCTTGTGGAAAGGACGAAACACCGGAAGCTGTACTTCAAAAAAGTTAGTACATTTTTTTCATATCTGCACTCACTCTCTGCTGAAGCTGTACTTCAAAAAATGGATGACATGAAGAAGATAGCTTGGCGTACCGCGATCTCTACTCTACCCACTTGTACTTCAGCGGTCAGCTTACTCGACTTAA"
+    bsequence = "TATATATCTTGTGGAAAGGACGAAACACCGGAAGCTGTACTTCAAAAAAGTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGCTGTCATCgATTTTTTGAAGTACATTTTTTTCATATCTGCACTCACTCTCTGCTGAAGCTGTACTTCAAAAAATGGATGACATGAAGAAGATAGCTTGGCGTAcCgcGATCTCTACTCTACCACTTGTACTTCAGCGGTCAGCTTACTCGACTTAA"
+    # by using the BLOSUM62
+    # matrix, together with a gap open penalty of 10 and a gap extension penalty of 0.5 (using globalds)
+    gap_open_penalty = 10
+    extension_penalty = 0.5
+    alignments = pairwise2.align.globalds(asequence.upper(), bsequence.upper(), blosum62, -gap_open_penalty, -extension_penalty)
+    # for tmp_tup in alignments:
+    #     print(tmp_tup[0])
+    #     print(tmp_tup[1])
+    #     print("")
+
+    print(pairwise2.format_alignment(*alignments[0]).split("\n"))
+    print(len(pairwise2.format_alignment(*alignments[0]).split("\n")[0]))
+    print(len(pairwise2.format_alignment(*alignments[0]).split("\n")[1]))
+    print(len(pairwise2.format_alignment(*alignments[0]).split("\n")[2]))
+
+
 
 
 start_time = clock()
 print("start >>>>>>>>>>>>>>>>>>")
-main()
-# test()
+# main()
+# pairwise2_w_opt_test()
+pairwise2_main()
 print("::::::::::: %.2f seconds ::::::::::::::" % (clock() - start_time))

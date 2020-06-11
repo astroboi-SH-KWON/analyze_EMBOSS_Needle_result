@@ -144,7 +144,11 @@ class Utils:
                             else:
                                 sheet.cell(row=row, column=5, value=str(i + 1))
                             sheet.cell(row=row, column=6, value=ins_dict[i])
+            if "result_" in fn_key:
+                workbook.save(filename=path + fn_key[fn_key.index("result_") + len("result_"):].replace(".txt",
+                                                                                                        "") + self.ext_xlsx)
+            else:
+                workbook.save(filename=path + fn_key[fn_key.index("input") + len("input") + 1:].replace(".txt", "") + self.ext_xlsx)
 
-            workbook.save(
-                filename=path + fn_key[fn_key.index("result_") + len("result_"):].replace(".txt", "") + self.ext_xlsx)
+
 
